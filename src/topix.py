@@ -13,6 +13,7 @@ from sklearn.preprocessing import StandardScaler # Feature Scaling
 from sklearn.ensemble import RandomForestRegressor # Training Regressor
 
 from sklearn import metrics
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
 # Other imported lib
 import random
@@ -25,14 +26,6 @@ def topix():
   print(df.shape)
   print(df['Date'][0].year)
   return df
-
-# Example try
-def news(df):
-  path = "../data/"+df['Date'][1400].strftime("%Y")+"/"
-  path = path +df['Date'][1400].strftime("%m")+"/"+df['Date'][1400].strftime("%d")
-  path = path +"/"+df['Date'][1400].strftime("%Y-%m-%d")+".csv"
-  df_ = pd.read_csv(path)
-  return
 
 def extract_news_light(df):
   df_news_light = 0
@@ -96,8 +89,10 @@ def random_forest_topix(X_train, X_test, y_train, y_test):
   print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
   print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
   print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+  print(confusion_matrix(y_test,y_pred))
+  print(classification_report(y_test,y_pred))
+  print(accuracy_score(y_test, y_pred))
   return
-
 
 def train_bert():
     # Convert all of our data into torch tensors, the required datatype for our model
