@@ -6,17 +6,20 @@ from tutorial import *
 import datetime as dt
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import make_classification
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 
-# Some other machine learning packages
+from sklearn.datasets import make_classification
 from sklearn.preprocessing import StandardScaler # Feature Scaling
 from sklearn.ensemble import RandomForestRegressor # Training Regressor
-
 from sklearn import metrics
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
+
 # Other imported lib
 import random
+import time
 
 def topix():
   df = pd.read_csv("../data/tpx100data.csv")
@@ -31,8 +34,8 @@ def extract_news_light(df):
   df_news_light = 0
   
   data = []
-  for i in range(2):
-    k = random.randint(0,1407) # based on dataset
+  for i in range(10):
+    k = i*14 # based on dataset
     path = "../data/"+df['Date'][k].strftime("%Y")+"/"
     path = path +df['Date'][k].strftime("%m")+"/"+df['Date'][k].strftime("%d")
     path = path +"/"+df['Date'][k].strftime("%Y-%m-%d")+".csv"
@@ -66,7 +69,7 @@ def bert_encoding(data):
 
     # Use train_test_split to split our data into train and validation sets for training
     inputs_train, inputs_test, labels_train, labels_test = train_test_split(input_ids, labels, 
-                                                                random_state=2022, test_size=0.5)
+                                                                shuffle=False, test_size=0.2)
     masks_train, masks_test, _, _ = train_test_split(attention_masks, input_ids,
                                                  random_state=2022, test_size=0.5)
 
@@ -74,17 +77,13 @@ def bert_encoding(data):
     random_forest_topix(inputs_train, inputs_test, labels_train, labels_test) 
 
 
-# Reference
-# Classifier: https://scikit-learn.org/stable/modules/ensemble.html#forest
-# Word Embedding: https://nlp.stanford.edu/software/GloVe-1.2.zip
-# Just to implement 10 of them
 def random_forest_topix(X_train, X_test, y_train, y_test):
-  sc = StandardScaler()
-  X_train = sc.fit_transform(X_train)
-  X_test = sc.transform(X_test)
-  regressor = RandomForestRegressor(n_estimators=20, random_state=0)
-  regressor.fit(X_train, y_train)
-  y_pred = regressor.predict(X_test)
+  print("Random Forest Topix")
+  model = RandomForestClassifier(n_estimators = 10)
+  #regressor = RandomForestRegressor(n_estimators=5, random_state=0)
+  #regressor.fit(X_train, y_train)
+  model.fit(X_train, y_train)
+  y_pred = model.predict(X_test)
 
   print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
   print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
@@ -92,7 +91,47 @@ def random_forest_topix(X_train, X_test, y_train, y_test):
   print(confusion_matrix(y_test,y_pred))
   print(classification_report(y_test,y_pred))
   print(accuracy_score(y_test, y_pred))
-  return
+  print("Done!")
+
+def neural_network_topix(X_train, X_test, y_train, y_test):
+  model = MLPClassifier(solver='lbfgs', alpha=1e-5,
+                    hidden_layer_sizes=(5, 2), random_state=1)
+  model.fit(X_train, y_train)
+  y_pred = model.predict(X_test)
+
+  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+  print(confusion_matrix(y_test,y_pred))
+  print(classification_report(y_test,y_pred))
+  print(accuracy_score(y_test, y_pred))
+  print("Done!")
+  
+def k_nearest_neighbor_topix(X_train, X_test, y_train, y_test):
+  model = KNeighborsClassifier(n_neighbors=3)
+  model.fit(X_train, y_train)
+  y_pred = model.predict(X_test)
+
+  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+  print(confusion_matrix(y_test,y_pred))
+  print(classification_report(y_test,y_pred))
+  print(accuracy_score(y_test, y_pred))
+  print("Done!")
+
+def naive_bayes_topix(X_train, X_test, y_train, y_test):
+  model = GaussianNB()
+  model.fit(X_train, y_train)
+  y_pred = model.predict(X_test)
+
+  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+  print(confusion_matrix(y_test,y_pred))
+  print(classification_report(y_test,y_pred))
+  print(accuracy_score(y_test, y_pred))
+  print("Done!")
 
 def train_bert():
     # Convert all of our data into torch tensors, the required datatype for our model
