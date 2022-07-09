@@ -2,24 +2,19 @@
 # Date: 2022/05/18
 # Purpose: Wash the data
 
-from tutorial import *
 import datetime as dt
 
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-
-from sklearn.datasets import make_classification
-from sklearn.preprocessing import StandardScaler # Feature Scaling
-from sklearn.ensemble import RandomForestRegressor # Training Regressor
 from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
+
+from tutorial import *
 
 
 # Other imported lib
-import random
-import time
 
 def topix():
   df = pd.read_csv("../data/tpx100data.csv")
@@ -34,11 +29,13 @@ def extract_news_light(df):
   df_news_light = 0
   
   data = []
-  for i in range(10):
-    k = i*14 # based on dataset
+  Default = 185
+  for i in range(100):
+    k = Default+i # based on dataset
     path = "../data/"+df['Date'][k].strftime("%Y")+"/"
     path = path +df['Date'][k].strftime("%m")+"/"+df['Date'][k].strftime("%d")
     path = path +"/"+df['Date'][k].strftime("%Y-%m-%d")+".csv"
+    print(path)
     data.append(label_news( path, df['Change'][k] ))
   
   result = pd.concat(data)

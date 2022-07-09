@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 #matplotlib inline
 
 #df = pd.read_csv("../data/2013/01/01/2013-01-01.csv", delimiter='\t', header=None, names=['sentence_source', 'label', 'label_notes', 'sentence'])
-df = pd.read_csv("../data/2013/01/01/2013-01-01.csv", 
+df = pd.read_csv("../data/2017/01/01/2017-01-01.csv",
         delimiter=',', header=None, skiprows=[0], 
         names=[
             'Unique_Story_Index',
