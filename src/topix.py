@@ -2,19 +2,12 @@
 # Date: 2022/05/18
 # Purpose: Wash the data
 
-import datetime as dt
-
-from sklearn import metrics
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neural_network import MLPClassifier
-
+from models import *
 from tutorial import *
 
-
-# Other imported lib
+# https://datatofish.com/plot-dataframe-pandas/
+# For better analyzing the Stock data
+# https://pythoninoffice.com/draw-stock-chart-with-python/
 
 def topix():
   df = pd.read_csv("../data/tpx100data.csv")
@@ -23,6 +16,20 @@ def topix():
   print(df)
   print(df.shape)
   print(df['Date'][0].year)
+  df = df[::-1]
+  # df = df.head(200)
+  print(df)
+  # remove all comma
+  df.replace(',', '', regex=True,inplace=True)
+  x = df.Date
+  y = pd.to_numeric( df['Open'])
+  df.Change = pd.to_numeric( df.Change )
+  #plt.yticks(np.arange(-100, 100, step=20))
+  plt.plot(x, y, linewidth=2)
+  plt.show()
+  # Way to change ticks
+  # fig = go.Figure(data=go.Scatter(x, y, mode='lines'))
+  # fig.show()
   return df
 
 def extract_news_light(df):
@@ -39,7 +46,8 @@ def extract_news_light(df):
     data.append(label_news( path, df['Change'][k] ))
   
   result = pd.concat(data)
-  bert_encoding(result)
+  print(result)
+  #bert_encoding(result)
 
 # Tutorial Citation
 # https://www.kaggle.com/code/pavansanagapati/knowledge-graph-nlp-tutorial-bert-spacy-nltk
@@ -71,90 +79,14 @@ def bert_encoding(data):
                                                  random_state=2022, test_size=0.5)
 
     # From here apply the random forest
-    random_forest_topix(inputs_train, inputs_test, labels_train, labels_test) 
+    random_forest_topix(inputs_train, inputs_test, labels_train, labels_test)
+    print("==================================================")
+    neural_network_topix(inputs_train, inputs_test, labels_train, labels_test)
+    print("==================================================")
+    k_nearest_neighbor_topix(inputs_train, inputs_test, labels_train, labels_test)
+    print("==================================================")
+    naive_bayes_topix(inputs_train, inputs_test, labels_train, labels_test)
 
-
-def random_forest_topix(X_train, X_test, y_train, y_test):
-  print("Random Forest Topix")
-  model = RandomForestClassifier(n_estimators = 10)
-  #regressor = RandomForestRegressor(n_estimators=5, random_state=0)
-  #regressor.fit(X_train, y_train)
-  model.fit(X_train, y_train)
-  y_pred = model.predict(X_test)
-
-  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
-  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
-  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-  print(confusion_matrix(y_test,y_pred))
-  print(classification_report(y_test,y_pred))
-  print(accuracy_score(y_test, y_pred))
-  print("Done!")
-
-def neural_network_topix(X_train, X_test, y_train, y_test):
-  model = MLPClassifier(solver='lbfgs', alpha=1e-5,
-                    hidden_layer_sizes=(5, 2), random_state=1)
-  model.fit(X_train, y_train)
-  y_pred = model.predict(X_test)
-
-  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
-  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
-  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-  print(confusion_matrix(y_test,y_pred))
-  print(classification_report(y_test,y_pred))
-  print(accuracy_score(y_test, y_pred))
-  print("Done!")
-  
-def k_nearest_neighbor_topix(X_train, X_test, y_train, y_test):
-  model = KNeighborsClassifier(n_neighbors=3)
-  model.fit(X_train, y_train)
-  y_pred = model.predict(X_test)
-
-  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
-  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
-  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-  print(confusion_matrix(y_test,y_pred))
-  print(classification_report(y_test,y_pred))
-  print(accuracy_score(y_test, y_pred))
-  print("Done!")
-
-def naive_bayes_topix(X_train, X_test, y_train, y_test):
-  model = GaussianNB()
-  model.fit(X_train, y_train)
-  y_pred = model.predict(X_test)
-
-  print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
-  print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
-  print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-  print(confusion_matrix(y_test,y_pred))
-  print(classification_report(y_test,y_pred))
-  print(accuracy_score(y_test, y_pred))
-  print("Done!")
-
-def train_bert():
-    # Convert all of our data into torch tensors, the required datatype for our model
-    train_inputs = torch.tensor(train_inputs)
-    validation_inputs = torch.tensor(validation_inputs)
-    train_labels = torch.tensor(train_labels)
-    validation_labels = torch.tensor(validation_labels)
-    train_masks = torch.tensor(train_masks)
-    validation_masks = torch.tensor(validation_masks)
-    
-    # Select a batch size for training. For fine-tuning BERT on a specific task, the authors recommend a batch size of 16 or 32
-    batch_size = 32
-    
-    # Create an iterator of our data with torch DataLoader. This helps save on memory during training because, unlike a for loop,
-    # with an iterator the entire dataset does not need to be loaded into memory
-    
-    train_data = TensorDataset(train_inputs, train_masks, train_labels)
-    train_sampler = RandomSampler(train_data)
-    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=batch_size)
-    validation_data = TensorDataset(validation_inputs, validation_masks, validation_labels)
-    validation_sampler = SequentialSampler(validation_data)
-    validation_dataloader = DataLoader(validation_data, sampler=validation_sampler, batch_size=batch_size)
-    
-    # Load BertForSequenceClassification, the pretrained BERT model with a single linear classification layer on top. 
-    model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
-    
 
 # label all the news
 # based on increment or decrement
@@ -210,4 +142,3 @@ if __name__ == "__main__" :
   df = topix()
   #news(df)
   extract_news_light(df)
-
