@@ -1,9 +1,8 @@
 # Author: Shiwen An
 # Date: 2022/05/18
 # Purpose: Wash the data
-
-
-
+import matplotlib.pyplot as plt
+import numpy
 
 from models import *
 from tutorial import *
@@ -17,6 +16,9 @@ from tensorflow.keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_squared_error
+
+from tensorflow.keras.layers import Dense, Activation
+from tensorflow.keras.optimizers import Adam
 
 tf.random.set_seed(7)
 
@@ -59,52 +61,86 @@ def LSTMMultivariant(df):
     plt.show()
 
     dataset = dataset[['Open', 'Price', 'High', 'Low', 'Change']]
+    RNNLSTM(dataset)
     dataset = dataset.values
-    print(dataset)
-    # Use Price+High+Low+Change to predict the Open Price
-    #encoder = LabelEncoder()
-    #dataset[:, 0] = encoder.fit_transform(dataset[:, 0])
-    print(dataset)
-    dataset = dataset.astype('float32')
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = scaler.fit_transform(dataset)
-    reframed = series_to_supervised(scaled, 1, 1)
-    reframed.drop(reframed.columns[[6, 7, 8, 9]], axis=1, inplace=True)
-    print(reframed)
+
+    # It might be a good starting point
+    # https://ctowardsdatascience.com/how-to-convert-pandas-dataframe-to-keras-rnn-and-back-to-pandas-for-multivariate-regression-dcc34c991df9
 
 
-    # split into train and test sets
-    values = reframed.values
-    n_train_days = 365
-    train = values[:n_train_days, :]
-    test = values[n_train_days:, :]
-    # split into input and outputs
-    train_X, train_y = train[:, :-1], train[:, -1]
-    test_X, test_y = test[:, :-1], test[:, -1]
-    # reshape input to be 3D [samples, timesteps, features]
-    train_X = train_X.reshape((train_X.shape[0], 1, train_X.shape[1]))
-    test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
-    print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
+def RNNLSTM(df):
+    print(df)
 
-    # design network
-    model = keras.Sequential()
-    model.add(layers.Embedding(input_dim=1000, output_dim=64))
-    model.add(layers.LSTM(128))
-    model.add(layers.Dense(10))
+    y_col = 'Open'
+    test_size = int(len(df) * 0.2)  # the test data will be 10% (0.1) of the entire data
+    train = df.iloc[:-test_size, :].copy()
+    # the copy() here is important, it will prevent us from getting: SettingWithCopyWarning: A value is trying to be set on a copy of a slice from a DataFrame. Try using .loc[row_index,col_indexer] = value instead
+    test = df.iloc[-test_size:, :].copy()
+    X_train = train.drop(y_col,axis=1).copy()
+    y_train = train[[y_col]].copy() # the double brakets here are to keep the y in a dataframe format, otherwise it will be pandas Series
+    print(X_train.shape, y_train.shape)
+
+    Xscaler = MinMaxScaler(feature_range=(0, 1)) # scale so that all the X data will range from 0 to 1
+    Xscaler.fit(X_train)
+    scaled_X_train = Xscaler.transform(X_train)
+    print(X_train.shape)
+    Yscaler = MinMaxScaler(feature_range=(0, 1))
+    Yscaler.fit(y_train)
+    scaled_y_train = Yscaler.transform(y_train)
+    print(scaled_y_train.shape)
+    scaled_y_train = scaled_y_train.reshape(-1) # remove the second dimention from y so the shape changes from (n,1) to (n,)
+    print(scaled_y_train.shape)
+
+    scaled_y_train = np.insert(scaled_y_train, 0, 0)
+    scaled_y_train = np.delete(scaled_y_train, -1)
+
+    n_input = 25 #how many samples/rows/timesteps to look in the past in order to forecast the next sample
+    n_features= X_train.shape[1] # how many predictors/Xs/features we have to predict y
+    b_size = 32 # Number of timeseries samples in each batch
+    generator = keras.preprocessing.sequence.TimeseriesGenerator(scaled_X_train, scaled_y_train, length=n_input, batch_size=b_size)
+
+    print(generator[0][0].shape)
+
+    model = Sequential()
+    model.add(LSTM(150, activation='relu', input_shape=(n_input, n_features)))
+    model.add(Dense(1))
+    model.compile(optimizer='adam', loss='mse')
     model.summary()
 
-    # model.add(LSTM(50, input_shape=(train_X.shape[1], train_X.shape[2])))
-    # model.add(Dense(1))
-    # model.compile(loss='mae', optimizer='adam')
-    # # fit network
-    # history = model.fit(train_X, train_y, epochs=50, batch_size=72, validation_data=(test_X, test_y), verbose=2,
-    #                     shuffle=False)
-    # # plot history
-    # plt.plot(history.history['loss'], label='train')
-    # plt.plot(history.history['val_loss'], label='test')
-    # plt.legend()
-    # plt.show()
+    model.fit_generator(generator, epochs=5)
 
+    X_test = test.drop(y_col, axis=1).copy()
+    scaled_X_test = Xscaler.transform(X_test)
+    test_generator = keras.preprocessing.sequence.TimeseriesGenerator(scaled_X_test, np.zeros(len(X_test)), length=n_input, batch_size=b_size)
+    print(test_generator[0][0].shape)
+
+    y_pred_scaled = model.predict(test_generator)
+    y_pred = Yscaler.inverse_transform(y_pred_scaled)
+    results = pd.DataFrame({'y_true': test[y_col].values[n_input:], 'y_pred': y_pred.ravel()})
+    print(results)
+
+    y1 = results.y_true.to_numpy()
+    y2 = results.y_pred.to_numpy()
+    print(y1)
+    print(y2)
+    x = numpy.arange(256)
+    print(x)
+    plt.plot(x, y1, 'g--')
+    plt.plot(x, y2, 'b--')
+    plt.show()
+
+    score = model.evaluate(scaled_X_test, y_pred_scaled, verbose=0)
+    print("Test Loss: ", score[0] )
+    print("Test Accuracy: ", score[1])
+
+
+    print("Everything Done")
+
+
+
+# Data Augmentation in LSTM
+# Could also be consider
+# https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
 
 
 # convert series to supervised learning
@@ -242,7 +278,7 @@ def label_news(path, label):
     droplist = []
     for index, row in df.iterrows():
         t = row['Story Date Time']
-        t = dt.datetime.strptime(t, '%m/%d/%Y %H:%M:%S')
+        dt = df.datetime.strptime(t, '%m/%d/%Y %H:%M:%S')
         r1 = isNowInTimePeriod(dt.time(9, 0), dt.time(15, 0), t.time())
         r2 = (t.weekday() < 5)
         # print("within market time", r1)
