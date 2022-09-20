@@ -91,9 +91,9 @@ train_x, train_y, test_x, test_y = circle_data_point_generator(
 
 # Visualization
 print("Visualization of {} data points in the training set: ".format(Ntrain))
-data_point_plot(train_x, train_y)
+# data_point_plot(train_x, train_y)
 print("Visualization of {} data points in the test set: ".format(Ntest))
-data_point_plot(test_x, test_y)
+# data_point_plot(test_x, test_y)
 print("\n You may wish to adjust the parameter settings to generate your own data set!")
 
 # Gate: rotate around Y-axis, Z-axis with angle theta
@@ -122,10 +122,10 @@ def datapoints_transform_to_state(data, n_qubits):
     :return: shape [-1, 1, 2 ^ n_qubits]
         the first parameter -1 in this shape means can be arbitrary. In this tutorial, it equals to BATCH.
     """
-    print(data)
+    # print(data)
     dim1, dim2 = data.shape
-    print("The dimension for the data: ")
-    print(dim1)
+    # print("The dimension for the data: ")
+    # print(dim1)
     res = []
     for sam in range(dim1):
         res_state = 1.
@@ -253,7 +253,10 @@ def heatmap_plot(Opt_Classifier, N):
     # make prediction: heat_data
     input_state_test = paddle.to_tensor(
         datapoints_transform_to_state(x_y_, N))
-    loss_useless, acc_useless, state_predict, cir = Opt_Classifier(state_in=input_state_test, label=x_y_[:, 0])
+
+    label1 = x_y_[:, 0]
+    print(input_state_test, label1)
+    loss_useless, acc_useless, state_predict, cir = Opt_Classifier(state_in=input_state_test, label=label1 )
     heat_data = state_predict.reshape(Num_points, Num_points)
 
     # plot
@@ -311,7 +314,10 @@ def QClassifier(Ntrain, Ntest, gap, N, DEPTH, EPOCH, LR, BATCH, seed_paras, seed
             i += 1  # Record the iteration number
             # Encode classical data into a quantum state |psi>, dimension [BATCH, 2 ** N]
             input_state = paddle.to_tensor(datapoints_transform_to_state(train_x[itr * BATCH:(itr + 1) * BATCH], N))
-
+            # print([np.round(i, 2) for i in input_state.data.numpy()])
+            if (i == 1 and itr ==0 and ep==0):
+                print("The return value of data points are",datapoints_transform_to_state(train_x[itr * BATCH:(itr + 1) * BATCH], N) )
+                print("The Input State Looks like: ", input_state)
             # Run forward propagation to calculate loss function
             loss, train_acc, state_predict_useless, cir \
                 = myLayer(state_in=input_state, label=train_y[itr * BATCH:(itr + 1) * BATCH])  # optimize the given PQC
