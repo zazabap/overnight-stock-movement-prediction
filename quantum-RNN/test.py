@@ -192,7 +192,7 @@ def built_in_angle_encoding(x_y_z):
       res.append(state.data.numpy())
   # res = np.array(res, dtype=paddle_quantum.get_dtype())
 
-  print(res)
+  # print(res)
   
   return res
 
@@ -311,6 +311,9 @@ if __name__ == '__main__' :
   for itr in range( Ntrain // BATCH):
     input_state = []
     input_state = built_in_angle_encoding(x_y_z[itr*BATCH:(itr+1)*BATCH] )
+    print(input_state)
+    input_state = paddle.to_tensor(input_state)
+    print(input_state)
 
 
 
